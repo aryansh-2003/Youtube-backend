@@ -15,7 +15,7 @@ const uploadOnCloud = async (localFilePath) => {
             resource_type: "auto"
         })
         //file has been uploaded
-        console.log("fille uploaded succesfully", response.url)
+        console.log("file uploaded succesfully", response.url)
         return response;
 
     } catch (error) {
