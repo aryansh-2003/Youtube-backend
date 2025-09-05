@@ -6,7 +6,8 @@ const videoSchema = new Schema(
     {
         videoFile:{
             type: String, // cloudanry url
-            required: true
+            required: true,
+            index: true
         },
         thumbnail:{
             type: String, 
