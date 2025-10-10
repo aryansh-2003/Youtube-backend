@@ -16,13 +16,14 @@ const getAllVideos = asyncHandler(async(req,res)=>{
 
     if (!query) return new ApiError(500,"Query is empty")
 
-
+    
     const matchedVideos = await Video.aggregate([
+        
         {
             $match:{
                 $or: [
-                    {title:query},
-                    {description:query}
+                    {title:{ $regex:query, $options: "i"}},
+                    {description:{ $regex:query, $options: "i"}}
                 ]
             }
         },
@@ -36,6 +37,81 @@ const getAllVideos = asyncHandler(async(req,res)=>{
         },
         {
             $limit : Number(limit)
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            avatar:1
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+
+    if (matchedVideos.length === 0) {
+          return res.status(200).json(
+        new ApiResponse(
+            200,
+            [],
+            "Not found"
+        )
+    )
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            matchedVideos,
+            "Found Videos Succesfully"
+        )
+    )
+
+})
+
+const getHomeVideos = asyncHandler(async(req,res)=>{
+    const {page = 1, limit = 10} = req.query;
+    console.log(page,limit)
+    
+    
+    const matchedVideos = await Video.aggregate([
+        {
+            $match:{
+                isPublished:true
+            }
+        },
+        {
+            $sort:({"createdAt":-1})
+        },
+        {
+            $skip: (Number(page) - 1) * Number(limit)
+        },
+        {
+            $limit : Number(limit)
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            avatar:1
+                        }
+                    }
+                ]
+            }
         }
     ])
 
@@ -59,15 +135,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
     if(!title || !description) throw new ApiError (400,"Title or description is empty!!")
 
-    
-    
-    const {userId} = req.params
+    const userId = req.user._id;
 
     if(!userId) throw new ApiError(400, "User is not logged in")
 
     const findUser = await User.findById(userId)
 
-    console.log(findUser)
 
     if (!findUser) throw new ApiError(404,"User doesnt exist")
 
@@ -112,12 +185,31 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const  {videoId}  = await req.params
 
+    const userId = req.user._id;
+
 
     //TODO: get video by id
 
     if (!videoId) throw new ApiError(400,"Video id not found")
    
-    const video = await Video.findById(videoId)
+    const video = await Video.findByIdAndUpdate(videoId,
+        {$inc: {views: 1}},
+        {new:true}
+    )
+
+    const removefromHistory = await User.findByIdAndUpdate(userId,{
+        $pull:{
+            watchHistory:videoId
+        }
+    })
+
+       const addToHistory = await User.findByIdAndUpdate(userId,{
+        $push:{
+            watchHistory:{$each:[videoId],$position:0}
+        }
+    })
+
+    if (!addToHistory ) throw new ApiError(500, "Something went wrong")
 
     if(!video) throw new ApiError(404,"Video not found")
 
@@ -149,8 +241,8 @@ const getVideoById = asyncHandler(async (req, res) => {
 
   
     if (!finalVideo) throw new ApiError(500,"Internal Server Error")
+    
 
- console.log(finalVideo)
     //Todo: return owner info by aggregation piepline
 
 
@@ -160,6 +252,29 @@ const getVideoById = asyncHandler(async (req, res) => {
         "Video found succesfully"
         ))
 
+})
+
+const getsingleVideo = asyncHandler(async(req,res)=>{
+     const  {videoId}  = await req.params
+
+
+    //TODO: get video by id
+
+    if (!videoId) throw new ApiError(400,"Video id not found")
+   
+    const video = await Video.findById(videoId)
+
+
+    if(!video) throw new ApiError(404,"Video not found")    
+
+    //Todo: return owner info by aggregation piepline
+
+
+    return res.status(200).json(new ApiResponse(
+        200,
+        video,
+        "Video found succesfully"
+        ))
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
@@ -268,5 +383,7 @@ export {
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    getsingleVideo,
+    getHomeVideos
 }

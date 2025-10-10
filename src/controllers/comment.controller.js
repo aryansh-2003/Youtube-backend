@@ -12,17 +12,38 @@ const getVideoComments = asyncHandler(async (req, res) => {
     if (!videoId || !page || !limit) throw new ApiError(404,"videoId, page or limit is missing");
 
 
-    const comments = await Comment.find(
-        { video: videoId}
-    ).skip((page - 1) * limit)
-    .limit(limit)
+    const comment = await Comment.aggregate([
+        {
+            $match:{
+                video : new mongoose.Types.ObjectId(videoId)
+            }
+        },
+          {
+            $lookup:{
+                from: "users",
+                localField:"owner",
+                foreignField: "_id",
+                as: "ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            username:1,
+                            subscribersCount: 1,
+                            avatar: 1,
+                        }
+                    }
+                ]
+            }
+        },
+    ])
 
-    if (!comments) throw new ApiError(400,"No comments on the video yet");
+    if (!comment) throw new ApiError(400,"No comments on the video yet");
 
     return res.status(200).json(
         new ApiResponse(
             200,
-            comments,
+            comment,
             "Comments fetched succesfully"
         )
     )

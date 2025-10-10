@@ -12,7 +12,7 @@ const likeCreate = async (UserId,typeId,type) =>{
         likedby: UserId
     })
     if(!response) throw new ApiError(500, "Something went wrong")
-    return response    
+    return response
 
 }
 
@@ -110,8 +110,45 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 })
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
-    const {tweetId} = req.params
     //TODO: toggle like on tweet
+    const {tweetId} = req.params
+    const userId = req.user._id
+    if (!userId || !isValidObjectId(userId)) throw new ApiError(400,"User id is invalid");
+    
+    const existingLike = await Like.findOne({
+        tweet: tweetId,
+        likedby: userId
+    })
+
+         
+
+    if (!existingLike){
+        
+        const result = await likeCreate(userId,tweetId,"tweet")
+        
+        if (!result) throw new ApiError(500,"Something went wrong");
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                result,
+                "Tweet liked succesfully"
+            )
+        )
+         
+    }else{
+       
+        const result = await likeDelte(existingLike._id)
+        
+        if (!result) throw new ApiError(500,"Something went wrong");
+
+          return res.status(200).json(
+            new ApiResponse(
+                200,
+                result,
+                "Tweet unliked succesfully"
+            )
+        )
+    }
 }
 )
 

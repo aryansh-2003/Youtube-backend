@@ -9,8 +9,8 @@ router.use(verifyJWT);
 
 router.route('/create-tweet').post(createTweet)
 router.route('/user-tweets').get(getUserTweets)
-router.route('/edit-tweet/:tweetId').post(updateTweet)
-router.route("/delete-tweet/:tweetId").get(deleteTweet)
+router.route('/edit-tweet/:tweetId').patch(updateTweet)
+router.route("/delete-tweet/:tweetId").delete(deleteTweet)
 
 
 

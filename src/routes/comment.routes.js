@@ -9,8 +9,8 @@ router.use(verifyJWT)
 
 router.route('/get-comments/:videoId').get(getVideoComments)
 router.route('/add-comment/:videoId').post(addComment)
-router.route('/update-comment/:commentId').post(updateComment)
-router.route('/delete-comment/:commentId').get(deleteComment)
+router.route('/update-comment/:commentId').patch(updateComment)
+router.route('/delete-comment/:commentId').delete(deleteComment)
 
 
 
