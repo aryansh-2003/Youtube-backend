@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import fs from 'fs'
+import fs from 'fs/promises'; // Promise-based fs
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -9,21 +9,27 @@ cloudinary.config({
 
 const uploadOnCloud = async (localFilePath) => {
     try {
-        if(!localFilePath) return null
-        // upload file om cloudinary
-        const response = await cloudinary.uploader.upload(localFilePath,{
+        if (!localFilePath) return null;
+
+        const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "auto"
-        })
-        //file has been uploaded
-        // fs.unlink(localFilePath)
+        });
+
+        await fs.unlink(localFilePath);
         return response;
-        
 
     } catch (error) {
-        fs.unlinkSync(localFilePath) //used for removing local file as upload operation got failed
-    }
+        try {
+            await fs.unlink(localFilePath);
+        } catch (cleanupErr) {
+            console.error("Error deleting temp file:", cleanupErr.message);
+        }
 
+        console.error("Upload failed:", error.message);
+        throw error; 
+    }
 }
+
 
 const deleteFromCloudinary = async (url) =>{
 

@@ -3,8 +3,7 @@ import path from "path";
 
 const storage = multer.diskStorage({
   
-      destination: function (req, file, cb) {
-        console.log(file)
+     destination: function (req, file, cb) {
       cb(null, path.join(process.cwd(), "public/temp"))
     },
     filename: function (req, file, cb) {
