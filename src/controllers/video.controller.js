@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {Video} from '../models/video.model.js'
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {User} from '../models/user.model.js'
+import {Like} from '../models/likes.models.js'
 import { deleteFromCloudinary, uploadOnCloud } from "../utils/cloudinary.js";
 
 
@@ -48,7 +49,8 @@ const getAllVideos = asyncHandler(async(req,res)=>{
                     {
                         $project:{
                             fullname:1,
-                            avatar:1
+                            avatar:1,
+                            username:1
                         }
                     }
                 ]
@@ -107,7 +109,8 @@ const getHomeVideos = asyncHandler(async(req,res)=>{
                     {
                         $project:{
                             fullname:1,
-                            avatar:1
+                            avatar:1,
+                            username:1
                         }
                     }
                 ]
@@ -157,7 +160,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const cloudinaryVideo = await uploadOnCloud(videoLocalPath)
     const cloudinaryhumbnail = await uploadOnCloud(thumbnailLocalPath)
 
-    console.log(cloudinaryVideo,cloudinaryhumbnail)
 
     if (!cloudinaryVideo || !cloudinaryhumbnail) throw new ApiError(500,"Cant upload the video or Thumbnail")
 
@@ -209,6 +211,21 @@ const getVideoById = asyncHandler(async (req, res) => {
         }
     })
 
+
+    const isLiked = await Like.find({
+        video:videoId
+    },
+    {
+        likedby:userId
+    }
+   )
+
+   const totalLikes = await Like.find(
+    {
+        video:videoId
+    }
+   )
+
     if (!addToHistory ) throw new ApiError(500, "Something went wrong")
 
     if(!video) throw new ApiError(404,"Video not found")
@@ -237,6 +254,12 @@ const getVideoById = asyncHandler(async (req, res) => {
                 ]
             }
         },
+        {
+            $addFields:{
+                isLiked:{$cond:{if:isLiked.length > 0 ,then: true, else : false}},
+                totalLikes:totalLikes?.length
+            }
+        }
     ])
 
   
@@ -279,9 +302,12 @@ const getsingleVideo = asyncHandler(async(req,res)=>{
 
 const updateVideo = asyncHandler(async (req, res) => {
 
-  const {title, description} = req.body
-  const { videoId,userId } = req.params
+  const {title, description,isPublished} = req.body
+  const { videoId } = req.params
+  const userId = req.user._id
   const thumbnailLocalPath = req.file?.path
+
+  console.log(title,description,isPublished,videoId,userId,thumbnailLocalPath)
 
   
     const thumbnailCloudinary = await uploadOnCloud(thumbnailLocalPath)
@@ -293,8 +319,8 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     if(!video) throw new ApiError(400,"Video Not found")
 
-
-    if(video.owner != userId) throw new ApiError(400,"User not authorized to update video")
+        console.log(video.owner,userId.toString())
+    if(video.owner.toString() != userId.toString()) throw new ApiError(400,"User not authorized to update video")
 
 
     if (!title || !description) throw new ApiError(401,"Title or Description is empty!!")
@@ -305,7 +331,8 @@ const updateVideo = asyncHandler(async (req, res) => {
             $set:{
                 title:title,
                 description:description,
-                ...(thumbnailCloudinary && {thumbnail:thumbnailCloudinary.url})
+                ...(thumbnailCloudinary && {thumbnail:thumbnailCloudinary.url}),
+                ...(isPublished && {isPublished:isPublished})
             }
         },
         {new: true}
@@ -334,8 +361,10 @@ const deleteVideo = asyncHandler(async (req, res) => {
     const videoResponse = await deleteFromCloudinary(videoUrl.videoFile)
 
 
-    // if (!thumbnailResponse || !videoResponse) throw new ApiError(400, "Video or Thumbnail doesn't exist in the database!")
+
     console.log(videoResponse,thumbnailResponse)
+    if (!thumbnailResponse || !videoResponse) throw new ApiError(400, "Video or Thumbnail doesn't exist in the database!")
+
 
     const success = await Video.findByIdAndDelete(videoId)
 

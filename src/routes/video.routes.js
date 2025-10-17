@@ -23,7 +23,7 @@ router.route('/upload-Video').post(
 router.route('/getVideos').get(getAllVideos)
 router.route('/get-video-by-id/:videoId').get(verifyJWT,getVideoById)
 router.route('/get-single-video/:videoId').get(getsingleVideo)
-router.route('/update-video/:videoId/:userId').patch(upload.single("thumbnail"),updateVideo)
+router.route('/update-video/:videoId').patch(upload.single("thumbnail"),verifyJWT,updateVideo)
 router.route('/delete-Video/:videoId').delete(deleteVideo)
 router.route('/toggle-status/:videoId').patch(togglePublishStatus)
 router.route('/getHomevids').get(getHomeVideos)

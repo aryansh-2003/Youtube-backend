@@ -1,5 +1,6 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Playlist} from "../models/playlist.model.js"
+import {Video} from "../models/video.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -8,6 +9,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 const createPlaylist = asyncHandler(async (req, res) => {
     const {name, description} = req.body
     const userId = req.user._id
+    console.log(name,description,userId)
     if (!mongoose.Types.ObjectId.isValid(userId)) throw new ApiError(400, "User id is invalid")
     if (!name || !description) throw new ApiError(400 , "Name or description is missing");
 
@@ -30,7 +32,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
 })
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
-    const userId = req.user._id || req.params
+    const userId = req.user._id 
     //TODO: get user playlists
 
     if (!mongoose.Types.ObjectId.isValid(userId)) throw new ApiError(400, "User id is invalid");
@@ -62,6 +64,12 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     const response = await Playlist.findById(playlistId)
 
+    console.log(response.videos)
+    const videos = await Video.aggregate([
+    {
+        $match:{_id : {$in: response.videos.map(vid => vid)}}
+    }
+    ])
 
     if (!response) throw new ApiError(500, "Something went wrong!");
 
@@ -69,7 +77,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
       res.status(200).json(
         new ApiResponse(
             200,
-            response,
+            {response, videos},
             "Playlist Found"
         )
     )
@@ -86,10 +94,10 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     if (!playlistId || !videoId) throw new ApiError(400, "Playlist id or Video id is missing");
 
     const updatePlaylist = await Playlist.findByIdAndUpdate(playlistId,
-        {
-            $addToSet: {videos:videoId}
-        },
-        { new:true }
+
+     {  $push:{
+            videos:{$each:[videoId],$position:0}
+        }}
     )
 
 

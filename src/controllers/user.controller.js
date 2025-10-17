@@ -335,7 +335,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
   },
   {
     $lookup: {
-      from: "subscriptions", // collection name
+      from: "subscriptions", 
       localField: "_id",
       foreignField: "channel",
       as: "subscribers"
@@ -369,7 +369,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
   },
   {
     $project: {
-      fullName: 1,
+      fullname: 1,
       username: 1,
       subscribersCount: 1,
       channelsSubscribedToCount: 1,
