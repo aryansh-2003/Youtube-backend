@@ -18,6 +18,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 video : new mongoose.Types.ObjectId(videoId)
             }
         },
+        {
+            $sort:{createdAt:-1}
+        },
           {
             $lookup:{
                 from: "users",

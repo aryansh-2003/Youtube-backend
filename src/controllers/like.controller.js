@@ -4,6 +4,8 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
+import { Video } from "../models/video.model.js"
+
 
 
 const likeCreate = async (UserId,typeId,type) =>{
@@ -154,6 +156,54 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
+     const userId = req.user._id
+    if (!userId || !isValidObjectId(userId)) throw new ApiError(400,"User id is invalid");
+    const likedVideos = await Like.find(
+        {
+            likedby:userId,
+            video: { $exists: true, $ne: null } 
+        }
+    )
+
+    const totalVideos = await Video.aggregate([
+        {
+            $match: {_id : {$in: likedVideos.map((video) => video.video)}}
+        },
+        {
+            $sort:{createdAt:-1}
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField: "owner",
+                foreignField:"_id",
+                as:"ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            _id:1,
+                            avatar:1
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    likedVideos.map((video)=>{
+        console.log(video.video)
+    })
+
+
+    return res.status(200).json(
+            new ApiResponse(
+                200,
+                totalVideos,
+                "Liked videos fetched succesfully"
+            )
+        )
+
 })
 
 export {

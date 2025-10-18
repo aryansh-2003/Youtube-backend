@@ -11,7 +11,6 @@ import { deleteFromCloudinary, uploadOnCloud } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async(req,res)=>{
     const {page = 1, limit = 10, query,sortBy,sortType,userId} = req.query;
-    console.log(page,limit,query,sortBy,sortType)
     
 
 
@@ -81,7 +80,6 @@ const getAllVideos = asyncHandler(async(req,res)=>{
 
 const getHomeVideos = asyncHandler(async(req,res)=>{
     const {page = 1, limit = 10} = req.query;
-    console.log(page,limit)
     
     
     const matchedVideos = await Video.aggregate([
@@ -189,9 +187,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     const userId = req.user._id;
 
-
-    //TODO: get video by id
-
     if (!videoId) throw new ApiError(400,"Video id not found")
    
     const video = await Video.findByIdAndUpdate(videoId,
@@ -212,19 +207,21 @@ const getVideoById = asyncHandler(async (req, res) => {
     })
 
 
-    const isLiked = await Like.find({
-        video:videoId
-    },
+    const isLiked = await Like.find(
     {
-        likedby:userId
+         video:videoId,
+         likedby:userId
     }
    )
+
+//    console.log(isLiked)
 
    const totalLikes = await Like.find(
     {
         video:videoId
     }
    )
+
 
     if (!addToHistory ) throw new ApiError(500, "Something went wrong")
 
@@ -243,12 +240,47 @@ const getVideoById = asyncHandler(async (req, res) => {
                 foreignField: "_id",
                 as: "ownerInfo",
                 pipeline:[
+                            {
+                $lookup: {
+                from: "subscriptions", 
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+                }
+            },
+            {
+                $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+                }
+            },
+            {
+                $addFields: {
+                subscribersCount: { $size: "$subscribers" },
+                channelsSubscribedToCount: { $size: "$subscribedTo" },
+                isSubscribed: {
+                    $cond: {
+                    if: {
+                        $in: [
+                        req.user?._id,
+                        { $map: { input: "$subscribers", as: "s", in: "$$s.subscriber" } }
+                        ]
+                    },
+                    then: true,
+                    else: false
+                    }
+                }
+                }
+            },
                     {
                         $project:{
                             fullname:1,
                             username:1,
                             subscribersCount: 1,
                             avatar: 1,
+                            isSubscribed:1
                         }
                     }
                 ]
@@ -307,7 +339,6 @@ const updateVideo = asyncHandler(async (req, res) => {
   const userId = req.user._id
   const thumbnailLocalPath = req.file?.path
 
-  console.log(title,description,isPublished,videoId,userId,thumbnailLocalPath)
 
   
     const thumbnailCloudinary = await uploadOnCloud(thumbnailLocalPath)
@@ -319,7 +350,6 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     if(!video) throw new ApiError(400,"Video Not found")
 
-        console.log(video.owner,userId.toString())
     if(video.owner.toString() != userId.toString()) throw new ApiError(400,"User not authorized to update video")
 
 
@@ -362,7 +392,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 
 
-    console.log(videoResponse,thumbnailResponse)
     if (!thumbnailResponse || !videoResponse) throw new ApiError(400, "Video or Thumbnail doesn't exist in the database!")
 
 
@@ -389,7 +418,6 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     if (typeof publishStatus === "undefined") throw new ApiError(404, "Publish status is missing")
 
     const currStatus = await  Video.findById(videoId)
-    console.log(currStatus)
     if(currStatus.isPublished === publishStatus) throw new ApiError(400,`Status is already ${publishStatus}`)
     
     const updatedStatus = await Video.findByIdAndUpdate(videoId,
@@ -405,6 +433,8 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         "Status Updated Succesfully"
     ))
 })
+
+
 
 export {
     getAllVideos,

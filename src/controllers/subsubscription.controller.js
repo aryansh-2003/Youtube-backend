@@ -20,7 +20,6 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         channel:channelId
     })
 
-    console.log(isSubscribed)
 
     if (isSubscribed.length === 0) {
         const response = await Subscription.create(

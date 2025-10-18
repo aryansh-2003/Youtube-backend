@@ -6,7 +6,7 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import mongoose from 'mongoose'
 
-
+console
 const generateAcessAndRefreshTokens = async (userId) =>
 {
     try {
@@ -41,7 +41,6 @@ const registerUser = asyncHandler( async (req, res) => {
    
    
     const  {username, email, fullname, password} = req.body
-    console.log("email: ", email ,"\n password: ", password)
 
    if (
     [fullname,email,username,password].some((field) => field?.trim() === "")
@@ -128,7 +127,6 @@ const loginUser = asyncHandler(async(req,res)=>{
     if(!isPasswordValid){
         throw new ApiError(401, "Invalid user credintials")
     }
-    console.log(user._id)
 
     const {acessToken, refreshToken} = await generateAcessAndRefreshTokens(user._id)
 
@@ -242,7 +240,6 @@ const changeCurrentPassword = asyncHandler(async(req,res) => {
 
 
 const getCurrentUser = asyncHandler(async(req,res) => {
-    console.log(req?.user)
     return res
     .status(200)
     .json(new ApiResponse(200,{user:req?.user},"Current user fetched succesfully"))
@@ -398,43 +395,41 @@ const user = await User.aggregate([
     },
     {
         $lookup:{
-            from: "Video",
+            from: "videos",
             localField:"watchHistory",
             foreignField:"_id",
             as:"watchHistory",
             pipeline:[
                 {
                     $lookup:{
-                        from:"User",
+                        from:"users",
                         localField:"owner",
                         foreignField:"_id",
-                        as:"owner",
+                        as:"ownerInfo",
                         pipeline:[
                             {
                                 $project: {
-                                    fullName: 1,
-                                    username: 1,
-                                    avatar: 1
-                                }
-                            },
-                            {
-                                $addFields:{
-                                    owner:{
-                                        $first: "owner"
-                                    }
+                                    fullname: 1,
+                                    avatar: 1,
+                                    _id:1
                                 }
                             }
                         ]
                     }
-                }
+                },
+
+                {
+                    $sort:({"createdAt":-1})
+                },
             ]
         }
-    }
+    },
+   
 ])
 
 return res.status(200).json(new ApiResponse(
     200,
-    user[0].watchHistory,
+    user?.[0]?.watchHistory,
     "watch history fetched succesfully"
 ))
 })
