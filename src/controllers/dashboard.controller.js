@@ -7,41 +7,40 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {User} from "../models/user.model.js"
 import { Tweet } from "../models/tweets.model.js"
+import { Playlist } from "../models/playlist.model.js"
+
 
 
 const getChannelStats = asyncHandler(async (req, res) => {
     // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
-     const {userId,videoId} = req.params;
-     console.log(userId)
-    // if (!mongoose.Types.ObjectId.isValid(new mongoose.Types.ObjectId(userId))) throw new ApiError(400, "User id is invalid");
+     const userId = req.user._id;
 
-     const userVideos = await Video.find({owner: userId})
+     const totalVideos = await Video.find({owner: userId})
      const totalSubscribers = await Subscription.find({channel:userId})
      const totalTweet = await Tweet.find({owner:userId})
+     const totalLikes = await Like.aggregate([
+        {
+            $match:{
+                video:{$in:totalVideos.map((vid) => vid?._id)}
+            }
+        }
+     ])
+     const totalVideoViews = totalVideos.reduce((acc,current) => acc + current.views , 0)
+     const totalPlaylist = await Playlist.aggregate([
+        {
+            $match:{owner:userId}
+        }
+     ])
     
-    
-      
      
+    if(!totalTweet || !totalVideos || !totalSubscribers || !totalSubscribers || !totalLikes || !totalVideoViews || !totalPlaylist ) throw new ApiError(500 , "Internal Server Error")
 
-   //   userVideos.map((video)=>{
-   //   const likes = await Like.find({video:video._id}) 
-
-   //   })
-
-  
-    
-  
-   const totalVideoViews = userVideos.reduce((acc, video) => acc + video.views, 0)
-
-   console.log("Total Video Views:" ,totalVideoViews)
-   console.log("Total Subscribers:" ,totalSubscribers.length)
-   console.log("Total Video:" ,userVideos.length)
-   console.log("Total Tweet:" ,totalTweet.length)
-
- 
-
-
-    
+    return res.status(200).json(new ApiResponse(
+        200,
+        {totalTweet: totalTweet.length,totalVideos : totalVideos.length,totalSubscribers : totalSubscribers.length,totalLikes : totalLikes.length,totalVideoViews : totalVideoViews,totalPlaylist : totalPlaylist.length},
+        "User dashboard"
+    )
+    )
 })
 
 const getChannelVideos = asyncHandler(async (req, res) => {
@@ -51,7 +50,28 @@ const getChannelVideos = asyncHandler(async (req, res) => {
 
 
 
-    const channelVideos = await Video.find({owner:new mongoose.Types.ObjectId(`${userId}`)})
+    const channelVideos = await Video.aggregate([
+        {
+            $match:{owner:new mongoose.Types.ObjectId(`${userId}`)}
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            avatar:1,
+                            username:1
+                        }
+                    }
+                ]
+            }
+        }
+    ])
    
      
     if(channelVideos.length == 0){

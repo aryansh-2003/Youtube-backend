@@ -196,14 +196,19 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     const removefromHistory = await User.findByIdAndUpdate(userId,{
         $pull:{
-            watchHistory:videoId
-        }
+            watchHistory: video._id,
+        },
+        new:true
+
     })
+
+
+
 
        const addToHistory = await User.findByIdAndUpdate(userId,{
         $push:{
-            watchHistory:{$each:[videoId],$position:0}
-        }
+            watchHistory:{$each:[videoId],$position:0},
+        },
     })
 
 
