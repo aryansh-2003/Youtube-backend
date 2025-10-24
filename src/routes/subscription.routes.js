@@ -8,7 +8,7 @@ router.use(verifyJWT)
 
 router.route("/subscribe/:channelId").post(toggleSubscription)
 router.route("/get-subscribers/:channelId").get(getUserChannelSubscribers)
-router.route("/get-subscribed-channel/:subscriberId").get(getSubscribedChannels)
+router.route("/get-subscribed-channel").get(getSubscribedChannels)
 
 
 
