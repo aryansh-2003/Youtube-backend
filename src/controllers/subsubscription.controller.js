@@ -64,10 +64,32 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
 
     if (!channelId) throw new ApiError(400,"Channel id is missing");
-    
-    const response  = await Subscription.find({
-        channel:channelId
-    })
+
+    const response  = await Subscription.aggregate(
+        [
+            {
+               $match:{ channel :new mongoose.Types.ObjectId (channelId) }
+            },
+            {
+            $lookup:{
+                from:"users",
+                localField: "subscriber",
+                foreignField:"_id",
+                as:"subscriberInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            username:1,
+                            _id:1,
+                            avatar:1
+                        }
+                    }
+                ]
+            }
+        }
+        ]
+    )
 
     if (!response) throw new ApiError(400,"Something went wrong");
     res.status(200).json(
@@ -81,13 +103,40 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params
+    const  subscriberId  = req?.user?._id
 
     if (!subscriberId) throw new ApiError(400,"Channel id is missing");
+
+        const response  = await Subscription.aggregate(
+        [
+            {
+               $match:{ subscriber :new mongoose.Types.ObjectId (subscriberId) }
+            },
+            {
+            $lookup:{
+                from:"users",
+                localField: "channel",
+                foreignField:"_id",
+                as:"channelInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            username:1,
+                            _id:1,
+                            avatar:1,
+                            coverImage:1
+                        }
+                    }
+                ]
+            }
+        }
+        ]
+    )
     
-    const response  = await Subscription.find({
-        subscriber:subscriberId
-    })
+    // const response  = await Subscription.find({
+    //     subscriber:subscriberId
+    // })
 
     if (!response) throw new ApiError(400,"Something went wrong");
     res.status(200).json(

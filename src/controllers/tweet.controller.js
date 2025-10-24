@@ -30,11 +30,35 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
-    const userId = req.user._id
+    const {userId} = req.params
+
     if (!userId) throw new ApiError(400,"User not available");
 
-    const allTweets = await Tweet.find(
-        {owner: userId}
+    const allTweets = await Tweet.aggregate([
+       {
+        $match: {owner: new mongoose.Types.ObjectId(userId)}
+       },
+       {
+            $sort:{createdAt:-1}
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField: "owner",
+                foreignField:"_id",
+                as:"ownerInfo",
+                pipeline:[
+                    {
+                        $project:{
+                            fullname:1,
+                            _id:1,
+                            avatar:1
+                        }
+                    }
+                ]
+            }
+        }
+    ]
     )
 
     return res.status(200).json(
