@@ -150,7 +150,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const videoLocalPath = await req.files?.video[0].path
     const thumbnailLocalPath = await req.files?.thumbnail[0].path
 
-    console.log(videoLocalPath,thumbnailLocalPath)
 
     if(!videoLocalPath || !thumbnailLocalPath) throw new ApiError(400,"File is missing")
 
@@ -158,12 +157,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const cloudinaryVideo = await uploadOnCloud(videoLocalPath)
     const cloudinaryhumbnail = await uploadOnCloud(thumbnailLocalPath)
 
-
+        console.log({videoFile: cloudinaryVideo.secure_url, thumbnail:cloudinaryhumbnail.secure_url})
     if (!cloudinaryVideo || !cloudinaryhumbnail) throw new ApiError(500,"Cant upload the video or Thumbnail")
 
     const uploadedVideo = await Video.create({
-        videoFile: cloudinaryVideo.url,
-        thumbnail:cloudinaryhumbnail.url,
+        videoFile: cloudinaryVideo.secure_url,
+        thumbnail:cloudinaryhumbnail.secure_url,
         title,
         description,
         duration:cloudinaryVideo.duration,

@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import { Like } from "../models/likes.models.js"
 
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
@@ -125,9 +126,106 @@ const deleteTweet = asyncHandler(async (req, res) => {
     )
 })
 
+const homeTweets = asyncHandler(async (req, res) => {
+        const {page = 1, limit = 10} = req.query;
+        const userId = req?.user?._id
+        console.log(userId)
+        console.log(Like.collection.name)
+     const Tweets = await Tweet.aggregate([
+       
+            {
+                $sort:({"createdAt":-1})
+            },
+            {
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {
+                $limit : Number(limit)
+            },
+            {
+            $lookup: {
+                from: "likes",
+                let:{tweetId:"$_id",userId:userId},
+                pipeline:[
+                    {
+                        $match:{
+                            $expr:{
+                                $and:[
+                                    {$eq:["$tweet","$$tweetId"]},
+                                    {$eq:["$likedby","$$userId"]}
+                                ]
+                            }
+                        }
+                    }
+                ],
+                // localField:"_id",
+                // foreignField:"tweet",
+                as: "likesInfo"
+            }
+            },
+              {
+            $lookup: {
+                from: "likes",
+                localField:"_id",
+                foreignField:"tweet",
+                as: "supertotalLikes"
+            }
+            },
+            {
+                $addFields:{
+                    totalLikes: {$size : "$supertotalLikes"}
+                    ,
+                    isLiked:{
+                        $cond:{
+                            if:{$gt:[{$size:"$likesInfo"},0]},
+                            then:true,
+                            else:false
+                        }
+                    }
+                }
+            },
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"ownerInfo",
+                    pipeline:[
+                        {
+                            $project:{
+                                fullname:1,
+                                avatar:1,
+                                username:1
+                            }
+                        }
+                    ]
+                }
+            },
+
+            {
+                $project:{likesInfo:0 , supertotalLikes:0}
+            }
+           
+        ])
+
+
+   
+
+    if (!Tweets) throw new ApiError(400, "Error");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            Tweets,
+            "Tweet  succesfully"
+        )
+    )
+})
+
 export {
     createTweet,
     getUserTweets,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    homeTweets
 }
