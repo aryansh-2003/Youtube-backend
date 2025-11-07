@@ -129,8 +129,9 @@ const deleteTweet = asyncHandler(async (req, res) => {
 const homeTweets = asyncHandler(async (req, res) => {
         const {page = 1, limit = 10} = req.query;
         const userId = req?.user?._id
-        console.log(userId)
-        console.log(Like.collection.name)
+
+        const totalTweets = await Tweet.countDocuments()
+
      const Tweets = await Tweet.aggregate([
        
             {
@@ -201,7 +202,6 @@ const homeTweets = asyncHandler(async (req, res) => {
                     ]
                 }
             },
-
             {
                 $project:{likesInfo:0 , supertotalLikes:0}
             }
@@ -209,17 +209,125 @@ const homeTweets = asyncHandler(async (req, res) => {
         ])
 
 
-   
-
     if (!Tweets) throw new ApiError(400, "Error");
 
     return res.status(200).json(
         new ApiResponse(
             200,
-            Tweets,
+            {Tweets:Tweets,totalTweets:Math.ceil(totalTweets/10)},
             "Tweet  succesfully"
         )
     )
+})
+
+const likedTweets = asyncHandler(async (req, res) => {
+
+    const {page = 1, limit = 10} = req.query;
+    const userId = req.user._id
+
+    const allLikedTweets = await Like.find(
+        {
+            likedby : new mongoose.Types.ObjectId(userId),
+        },
+        {
+            "tweet":1
+        }
+    )
+
+    const ArrayTweets = allLikedTweets.map((tweet) => tweet.tweet)
+
+    const likedandinfotweet = await Tweet.aggregate([
+        {
+            $match:{
+                "_id": {$in: ArrayTweets}
+            }
+        },
+        
+            {
+                $sort:({"createdAt":-1})
+            },
+            {
+                $skip: (Number(page) - 1) * Number(limit)
+            },
+            {
+                $limit : Number(limit)
+            },
+            {
+            $lookup: {
+                from: "likes",
+                let:{tweetId:"$_id",userId:userId},
+                pipeline:[
+                    {
+                        $match:{
+                            $expr:{
+                                $and:[
+                                    {$eq:["$tweet","$$tweetId"]},
+                                    {$eq:["$likedby","$$userId"]}
+                                ]
+                            }
+                        }
+                    }
+                ],
+                // localField:"_id",
+                // foreignField:"tweet",
+                as: "likesInfo"
+            }
+            },
+              {
+            $lookup: {
+                from: "likes",
+                localField:"_id",
+                foreignField:"tweet",
+                as: "supertotalLikes"
+            }
+            },
+            {
+                $addFields:{
+                    totalLikes: {$size : "$supertotalLikes"}
+                    ,
+                    isLiked:{
+                        $cond:{
+                            if:{$gt:[{$size:"$likesInfo"},0]},
+                            then:true,
+                            else:false
+                        }
+                    }
+                }
+            },
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"ownerInfo",
+                    pipeline:[
+                        {
+                            $project:{
+                                fullname:1,
+                                avatar:1,
+                                username:1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $project:{likesInfo:0 , supertotalLikes:0}
+            }
+    ])
+
+
+    if (!likedandinfotweet) throw new ApiError(400, "nOT FOUND");
+
+
+    res.status(200).json(
+        new ApiResponse(
+            200,
+            likedandinfotweet,
+            "Tweet succesfully FETCHED"  
+        )
+    )
+
 })
 
 export {
@@ -227,5 +335,6 @@ export {
     getUserTweets,
     updateTweet,
     deleteTweet,
-    homeTweets
+    homeTweets,
+    likedTweets
 }
