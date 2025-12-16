@@ -16,7 +16,6 @@ const uploadOnCloud = async (localFilePath) => {
             resource_type: "auto"
         });
 
-        console.log(response)
 
         await fs.unlink(localFilePath);
         return response;
@@ -39,7 +38,6 @@ const deleteFromCloudinary = async (url) =>{
     try {
         if (!url) return null
         const public_id = url.split('/')[6].split('.')[0]
-        console.log(public_id)
         return await cloudinary.uploader.destroy(public_id,
             {
                 resource_type:"auto"

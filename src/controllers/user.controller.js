@@ -190,9 +190,8 @@ try {
         incomingRefreshToken, 
         process.env.REFRESH_TOKEN_SECRET
         )
-    
+        console.log("decodedToken" + decodedToken)
        const user = await User.findById(decodedToken?._id)
-    
        if(!user) throw new ApiError(401, "Invalid Refresh Token")
     
        if(incomingRefreshToken !== user?.refreshToken) throw new ApiError(401, "Refresh token is expired or used")
@@ -202,16 +201,16 @@ try {
         secure: true
        }
     
-       const {accessToken, newRefreshToken} = await generateAcessAndRefreshTokens(user._id)
+       const {acessToken, refreshToken} = await generateAcessAndRefreshTokens(user._id)
     
        return res
        .status(200)
-       .cookie("accessToken",accessToken,option)
-       .cookie("refreshToken",newRefreshToken,option)
+       .cookie("accessToken",acessToken,option)
+       .cookie("refreshToken",refreshToken,option)
        .json(
         new ApiResponse(
             200,
-            {accessToken,refreshToken:newRefreshToken},
+            {accessToken:acessToken,refreshToken:refreshToken},
             "AccessToken refreshed"
         )
        )

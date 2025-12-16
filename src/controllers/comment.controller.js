@@ -7,9 +7,11 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const {videoId} = req.params
+    const userId = req?.user?._id
+    console.log(userId,videoId)
     const {page = 1, limit = 10} = req.query
 
-    if (!videoId || !page || !limit) throw new ApiError(404,"videoId, page or limit is missing");
+    if (!videoId) throw new ApiError(404,"videoId, page or limit is missing");
 
 
     const comment = await Comment.aggregate([
@@ -21,7 +23,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         {
             $sort:{createdAt:-1}
         },
-          {
+        {
             $lookup:{
                 from: "users",
                 localField:"owner",
@@ -39,6 +41,51 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 ]
             }
         },
+        {
+            $lookup: {
+                from: "likes",
+                localField:"_id",
+                foreignField:"comment",
+                as: "supertotalComment"
+            }
+            },
+         {
+            $lookup: {
+                from: "likes",
+                let:{commentId:"$_id",userId:userId},
+                pipeline:[
+                    {
+                        $match:{
+                            $expr:{
+                                $and:[
+                                    {$eq:["$comment","$$commentId"]},
+                                    {$eq:["$likedby","$$userId"]}
+                                ]
+                            }
+                        }
+                    }
+                ],
+                // localField:"_id",
+                // foreignField:"tweet",
+                as: "commentInfo"
+            }
+            },
+            
+            {
+                $addFields:{
+                    totalLikes: {$size : "$supertotalComment"}
+                    ,
+                    isLiked:{
+                        $cond:{
+                            if:{$gt:[{$size:"$commentInfo"},0]},
+                            then:true,
+                            else:false
+                        }
+                    }
+                }
+            },
+
+
     ])
 
     if (!comment) throw new ApiError(400,"No comments on the video yet");
