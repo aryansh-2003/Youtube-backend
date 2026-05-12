@@ -44,7 +44,26 @@ const userSchema = new Schema(
         },
         refreshToken:{
             type:String
-        }
+        },
+        notification:[
+             { 
+                clientId:{
+                    type: Schema.Types.ObjectId,
+                    ref: "User"
+                },
+                notifyType:{
+                    type: String,
+                    required: true
+                },
+                postId:{
+                    type: String,
+                },
+                status:{
+                    type: Boolean,
+                    default:false,
+                    required:true
+                }}
+        ]
     },
     {
         timestamps:true
@@ -70,7 +89,7 @@ const userSchema = new Schema(
                 username: this.username,
                 fullname: this.fullname
             },
-            process.env.ACCESS_TOKEN_SECRET,
+              process.env.ACCESS_TOKEN_SECRET,
             {
                 expiresIn: process.env.ACCESS_TOKEN_EXPIRY
             }

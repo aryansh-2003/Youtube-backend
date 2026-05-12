@@ -5,7 +5,7 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { User } from "../models/user.model.js"
 import { Video } from "../models/video.model.js"
-
+import {Notification} from '../models/notification.model.js'
 
 
 const likeCreate = async (UserId,typeId,type) =>{
@@ -29,6 +29,7 @@ const likeDelte = async (likeId) =>{
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
+    const ownerId =  (await Video.findOne({_id:videoId})).owner
     //TODO: toggle like on video
     const userId = req.user._id
     if (!userId || !isValidObjectId(userId)) throw new ApiError(400,"User id is invalid");
@@ -43,7 +44,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     if (!existingLike){
         
         const result = await likeCreate(userId,videoId,"video")
-        
+        const notificationUpdate = await Notification.create({
+            clientId:userId,ownerId:ownerId,notifyType:"Like",postId:videoId,status:true
+        })
+
         if (!result) throw new ApiError(500,"Something went wrong");
         return res.status(200).json(
             new ApiResponse(
@@ -56,8 +60,11 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     }else{
        
         const result = await likeDelte(existingLike._id)
+        const notificationUpdate = await Notification.deleteOne({
+            clientId:userId,ownerId:ownerId,notifyType:"Like",postId:videoId
+        })
         
-        if (!result) throw new ApiError(500,"Something went wrong");
+        if (!result || !notificationUpdate) throw new ApiError(500,"Something went wrong");
 
           return res.status(200).json(
             new ApiResponse(
@@ -191,9 +198,6 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         }
     ])
 
-    likedVideos.map((video)=>{
-        console.log(video.video)
-    })
 
 
     return res.status(200).json(

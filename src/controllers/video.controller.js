@@ -80,8 +80,8 @@ const getAllVideos = asyncHandler(async(req,res)=>{
 
 const getHomeVideos = asyncHandler(async(req,res)=>{
     const {page = 1, limit = 10} = req.query;
-    
-    
+    const io = req.app.get("socketio");
+
     const matchedVideos = await Video.aggregate([
         {
             $match:{
@@ -115,6 +115,8 @@ const getHomeVideos = asyncHandler(async(req,res)=>{
             }
         }
     ])
+
+   
 
 
     if (matchedVideos.length === 0) {
@@ -218,7 +220,6 @@ const getVideoById = asyncHandler(async (req, res) => {
     }
    )
 
-//    console.log(isLiked)
 
    const totalLikes = await Like.find(
     {

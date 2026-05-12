@@ -3,6 +3,9 @@ import {Comment} from "../models/comments.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import { Notification } from "../models/notification.model.js"
+import { Video } from "../models/video.model.js"
+
 
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
@@ -105,6 +108,7 @@ const addComment = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     const userId = req.user._id
     const {content} = req.body
+    const ownerId = (await Video.find({_id:videoId}))?.[0]?.owner
 
     if (!content) throw new ApiError(400,"Content is missing");
 
@@ -118,6 +122,12 @@ const addComment = asyncHandler(async (req, res) => {
             owner:userId
         }
     )
+
+           const notificationUpdate = await Notification.create({
+            clientId:userId,ownerId:ownerId,notifyType:"Comment",postId:videoId,status:true
+        })
+        
+        if (!response || !notificationUpdate) throw new ApiError(500,"Something went wrong");
 
 
     return res.status(200).json(

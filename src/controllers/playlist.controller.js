@@ -64,7 +64,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     const response = await Playlist.findById(playlistId)
 
-    console.log(response.videos)
+
     const videos = await Video.aggregate([
     {
         $match:{_id : {$in: response.videos.map(vid => vid)}}

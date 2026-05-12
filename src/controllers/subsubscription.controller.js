@@ -4,6 +4,7 @@ import { Subscription } from "../models/subscription.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import {Notification} from '../models/notification.model.js'
 
 
 const toggleSubscription = asyncHandler(async (req, res) => {
@@ -15,6 +16,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(subscriberId)) throw new ApiError(400,"Subscriber not authorized");
 
     if (channelId == subscriberId) throw new ApiError(400,"User can't subscribe it's own channel")
+
+        
     const isSubscribed = await Subscription.find({
         subscriber:subscriberId,
         channel:channelId
@@ -28,9 +31,13 @@ const toggleSubscription = asyncHandler(async (req, res) => {
                 channel:channelId
             }
         )
-        
 
-        if (!response) throw new ApiError(500, "Something went wrong");
+        
+        const notificationUpdate = await Notification.create({
+            clientId:subscriberId,ownerId:channelId,notifyType:"Subscribe",status:true
+        })
+
+        if (!response || !notificationUpdate) throw new ApiError(500, "Something went wrong");
 
         return res.status(200).json(
             new ApiResponse(
@@ -46,7 +53,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         channel:channelId
     })
 
-    if (!response) throw new ApiError(500, "Something went wrong");
+      const notificationUpdate = await Notification.create({
+            clientId:subscriberId,ownerId:channelId,notifyType:"Subscribe"
+        })
+        
+
+    if (!response || !notificationUpdate) throw new ApiError(500, "Something went wrong");
 
     return res.status(200).json(
             new ApiResponse(
