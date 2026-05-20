@@ -28,6 +28,7 @@
 
 ## 🏗️ System Architecture
 
+
 ```mermaid
 graph TD
     %% Frontend Subsystem
@@ -80,8 +81,8 @@ graph TD
     class Auth,JWT,Multer mid;
     class DB db;
     class Cloud cloud;
-
-🚀 Getting Started
+```
+#🚀 Getting Started
 Follow these instructions to set up the project locally on your machine.
 
 Prerequisites
