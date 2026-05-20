@@ -80,3 +80,41 @@ graph TD
     class Auth,JWT,Multer mid;
     class DB db;
     class Cloud cloud;
+
+🚀 Getting Started
+Follow these instructions to set up the project locally on your machine.
+
+Prerequisites
+Node.js (v16 or higher)
+
+MongoDB (Local instance or Atlas URI)
+
+Environment Variables
+Create a .env file in the server directory and add the following variables:
+
+Code snippet
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_jwt_key
+Installation
+1. Clone the repository:
+
+Bash
+git clone [https://github.com/aryansh-2003/chalchitram.git](https://github.com/aryansh-2003/chalchitram.git)
+cd chalchitram
+2. Install Backend Dependencies & Run:
+
+Bash
+cd server
+npm install
+npm run dev
+3. Install Frontend Dependencies & Run (in a new terminal):
+
+Bash
+cd client
+npm install
+npm start
+The client will start on http://localhost:3000 and the server on http://localhost:5000.
+
+🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
