@@ -30,14 +30,53 @@
 
 ```mermaid
 graph TD
-    Client[React Frontend] -->|REST API Calls| Server[Node/Express Backend]
-    Server -->|Read/Write User Data & History| Database[(MongoDB)]
-    Server -->|Validate Credentials| Auth[Authentication Middleware]
-    
-    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px,color:#000;
-    classDef backend fill:#43853D,stroke:#333,stroke-width:2px,color:#fff;
+    %% Frontend Subsystem
+    subgraph Client [React Frontend Architecture]
+        UI[React UI Components]
+        Redux[Redux Store: Global State & Video Cache]
+        Context[Context API: Auth State & Theme]
+        
+        UI <--> Redux
+        UI <--> Context
+    end
+
+    %% Network Boundary
+    Client -->|REST API + JWT Bearer Token| Router
+
+    %% Backend Subsystem
+    subgraph Server [Node/Express Backend]
+        Router[Express API Router]
+        
+        %% Middlewares
+        Auth[Auth Middleware: auth.js]
+        JWT[JWT Service: Sign/Verify]
+        Multer[Multer Middleware: Form-data/File Parser]
+        
+        Router --> Auth
+        Auth <--> JWT
+        Router --> Multer
+    end
+
+    %% External Storage & Database
+    subgraph Data [Data & Media Storage]
+        DB[(MongoDB)]
+        Cloud[(Cloudinary)]
+    end
+
+    %% Backend to Data connections
+    Multer -->|Stream Media Uploads| Cloud
+    Cloud -.->|Return Secure Media URLs| Router
+    Router -->|Read/Write User & Video Metadata| DB
+
+    %% Styling
+    classDef react fill:#61DAFB,stroke:#333,stroke-width:2px,color:#000;
+    classDef node fill:#43853D,stroke:#333,stroke-width:2px,color:#fff;
     classDef db fill:#4EA94B,stroke:#333,stroke-width:2px,color:#fff;
-    
-    class Client frontend;
-    class Server backend;
-    class Database db;
+    classDef cloud fill:#F4B400,stroke:#333,stroke-width:2px,color:#000;
+    classDef mid fill:#555,stroke:#333,stroke-width:2px,color:#fff;
+
+    class UI,Redux,Context react;
+    class Router node;
+    class Auth,JWT,Multer mid;
+    class DB db;
+    class Cloud cloud;
