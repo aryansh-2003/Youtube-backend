@@ -101,7 +101,7 @@ Installation
 1. Clone the repository:
 
 Bash
-git clone [https://github.com/aryansh-2003/chalchitram.git](https://github.com/aryansh-2003/chalchitram.git)
+git clone [https://github.com/aryansh-2003/Youtube-backend.git](https://github.com/aryansh-2003/Youtube-backend.git)
 cd chalchitram
 2. Install Backend Dependencies & Run:
 
